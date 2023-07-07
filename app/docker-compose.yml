@@ -1,0 +1,98 @@
+version: "3.9"
+
+services:
+  traefik:
+    image: traefik:2.4
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.swarmMode=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=${EMAIL}"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+      - "--log.level=DEBUG"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./letsencrypt:/letsencrypt"
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role==manager
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+    ports:
+      - 80:80
+      - 443:443
+      - 8080:8080
+    networks:
+      - web
+
+  strapi:
+    build: ./aws-strapi
+    image: strapi:latest
+
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./aws-strapi/config:/opt/app/config
+      - ./aws-strapi/src:/opt/app/src
+      - ./aws-strapi/package.json:/opt/package.json
+      - ./aws-strapi/yarn.lock:/opt/yarn.lock
+      - ./aws-strapi/.env:/opt/app/.env
+      - ./aws-strapi/public/uploads:/opt/app/public/uploads
+    networks:
+      - web
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "0.4"
+          memory: 400M
+        reservations:
+          cpus: "0.2"
+          memory: 250M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.strapi.rule=Host(`${DOMAIN}`)"
+        - "traefik.http.routers.strapi.entrypoints=websecure"
+        - "traefik.http.routers.strapi.tls.certresolver=myresolver"
+        - "traefik.http.services.strapi.loadbalancer.server.port=1337"
+        # Limita a 10 requisições por segundo retornando 429
+        - "traefik.http.routers.strapi.middlewares=strapi@docker"
+        - "traefik.http.middlewares.strapi.ratelimit.average=10"
+        - "traefik.http.middlewares.strapi.ratelimit.burst=1"
+        - "traefik.docker.network=web"
+  duckdns:
+    image: lscr.io/linuxserver/duckdns:latest
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+      - SUBDOMAINS=${SUBDOMAINS}
+      - TOKEN=${TOKEN}
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role==manager
+    networks:
+      - web
+
+networks:
+  web:
+    external: true

@@ -1,0 +1,95 @@
+- hosts: tag_cms
+  become: yes
+  tasks:
+    - name: Baixar e instalar Docker
+      shell: curl -fsSL https://get.docker.com | bash
+
+    - name: Adicionar o usuário ubuntu ao grupo Docker
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: Reiniciar a conexão para reavaliar os privilégios de grupo
+      meta: reset_connection
+
+    - name: Verificar se o Docker está funcionando
+      shell: systemctl status docker
+
+    - name: Atualizar a lista de pacotes
+      apt:
+        update_cache: yes
+
+    - name: Instalar Docker Compose
+      apt:
+        name: docker-compose
+        state: present
+
+    - name: Obter o endereço IP do manager
+      shell: cat /etc/hostname | sed -r 's/ip-//; s/-/./g'
+      register: manager_ip
+
+    - name: Inicializar Docker Swarm
+      shell: docker swarm init --advertise-addr "{{ manager_ip.stdout }}"
+
+    - name: Incluir variáveis do arquivo vars.yml
+      include_vars:
+        file: vars.yml
+
+    - name: Inserção do duckdns ao final do arquivo /etc/host
+      shell: echo "{{ manager_ip.stdout }} {{DUCKDNS_DOMAIN}}" >>/etc/hosts
+
+    - name: Copiar pasta local para o servidor remoto
+      synchronize:
+        src: ../app
+        dest: /home/ubuntu/
+        rsync_opts:
+          - "--exclude=node_modules"
+
+    - name: Muda a permissão da pasta letsencrypt
+      file:
+        path: /home/ubuntu/app/letsencrypt
+        mode: "0600"
+        recurse: yes
+
+- hosts: localhost
+  become: no
+  tasks:
+    - name: Construir a imagem Docker do strapi usando Docker Compose localmente
+      shell: docker-compose -f ../app/docker-compose.yml build
+
+    - name: Salvar imagem Docker maior em arquivo tar
+      shell: docker save strapi -o ../app/strapi.tar
+
+- hosts: tag_cms
+  become: yes
+  remote_user: ubuntu
+  tasks:
+    - name: Copiar a imagem docker do strapi para o servidor remoto
+      copy:
+        src: ../app/strapi.tar
+        dest: /home/ubuntu/app/strapi.tar
+
+    - name: Carregar imagem docker do strapi a partir de arquivo tar
+      community.general.docker_image:
+        name: strapi
+        load_path: "/home/ubuntu/app/strapi.tar"
+        source: load
+
+    - name: Cria a rede web do tipo overlay
+      command: docker network create -d overlay web
+
+    - name: Cria arquivo com as variáveis de ambiente resolvidas
+      shell: ./substitute-env.sh
+      args:
+        chdir: /home/ubuntu/app
+
+    - name: Executar a stack do Swarm
+      command: docker stack deploy -c docker-compose.resolved.yml cms
+      args:
+        chdir: /home/ubuntu/app
+
+    - name: Apagar a imagem docker remota do strapi após o deploy
+      file:
+        path: /home/ubuntu/app/strapi.tar
+        state: absent

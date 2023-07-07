@@ -1,0 +1,29 @@
+- name: Criar arquivo de swap 1GB
+  hosts: tag_cms
+  become: yes
+  tasks:
+    - name: Verificar se o arquivo de swap já existe
+      stat:
+        path: /swapfile
+      register: swapfile
+
+    - name: Criar arquivo de swap se ele não existir
+      command: fallocate -l 1G /swapfile
+      when: not swapfile.stat.exists
+
+    - name: Definir permissões no arquivo de swap
+      file:
+        path: /swapfile
+        mode: 0600
+
+    - name: Configurar o arquivo de swap
+      command: mkswap /swapfile
+
+    - name: Ativar o arquivo de swap
+      command: swapon /swapfile
+
+    - name: Adicionar entrada no fstab para montar o arquivo de swap na inicialização
+      lineinfile:
+        path: /etc/fstab
+        line: "/swapfile none swap sw 0 0"
+        state: present
