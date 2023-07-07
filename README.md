@@ -15,7 +15,7 @@
 
 ## Introdução
 
-Esta pipeline constrói toda infraestrutura e realiza o deploy de uma aplicação **Strapi** na AWS utilizando **Terraform**, **Ansible** e **Docker Swarm**. A infraestrutura AWS inclui instâncias **EC2**, **RDS**, **S3** e **CloudFront**. Além disso, utilizamos **Traefik** como load balancer, proxy reverso com certificado SSL gratuito emitido pelo Let's Encrypt e dimínio dinâmico criado pelo DuckDNS, gratuito.
+Esta pipeline provisiona a infraestrutura e realiza o deploy de uma aplicação **Strapi** na AWS utilizando **Terraform**, **Ansible** e **Docker Swarm**. A infraestrutura inclui instâncias **EC2**, **RDS**, **S3** e **CloudFront**. Além disso, utilizamos **Traefik** como load balancer, proxy reverso com certificado SSL gratuito emitido pelo Let's Encrypt e dimínio dinâmico criado pelo DuckDNS.
 
 ## Pré-requisitos
 
@@ -66,5 +66,5 @@ resource "aws_key_pair" "terraform-key" {
 
 ## Notas:
 
-O objetivo foi criar uma infraestrutura simples e de baixo custo, utilizando serviços gratuitos da AWS. DNS dinâmico criado pelo DuckDNS, juntamente com um certificado SSL gerado pelo Let's Encrypt de forma gratuíta. A aplicação possui 2 réplicas do Strapi, 1 réplica do Traefik e 1 réplica do duckdns. Utiliza 1 instância EC2 t2.micro, 1 instância RDS db.t3.micro, 1 bucket S3, 1 distribuição CloudFront.
+O objetivo foi provisionar infraestrutura simples e de baixo custo, utilizando serviços gratuitos da AWS. DNS dinâmico criado pelo DuckDNS, juntamente com um certificado SSL gerado pelo Let's Encrypt de forma gratuíta. A aplicação possui 2 réplicas do Strapi, 1 réplica do Traefik e 1 réplica do duckdns. Utiliza 1 instância EC2 t2.micro, 1 instância RDS db.t3.micro, 1 bucket S3, 1 distribuição CloudFront.
 O bucket S3 é privado e assível apenas pelo CloudFront que atua como CDN diminuindo os custos de transferência de dados do bucket S3 para a internet.
