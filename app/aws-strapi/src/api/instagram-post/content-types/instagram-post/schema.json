@@ -1,0 +1,57 @@
+{
+  "kind": "collectionType",
+  "collectionName": "instagram_posts",
+  "info": {
+    "singularName": "instagram-post",
+    "pluralName": "instagram-posts",
+    "displayName": "instagramPost",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "uuid": {
+      "type": "customField",
+      "customField": "plugin::field-uuid.uuid"
+    },
+    "instagramPublicationId": {
+      "type": "uid"
+    },
+    "title": {
+      "type": "text",
+      "required": true
+    },
+    "publication": {
+      "type": "richtext",
+      "required": true
+    },
+    "hashtags": {
+      "type": "text",
+      "required": true
+    },
+    "instagramImage": {
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ],
+      "type": "media",
+      "multiple": false,
+      "required": true
+    },
+    "postedOnInstagram": {
+      "type": "boolean",
+      "default": false,
+      "required": true
+    },
+    "article": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::article.article",
+      "inversedBy": "instagram_posts"
+    }
+  }
+}

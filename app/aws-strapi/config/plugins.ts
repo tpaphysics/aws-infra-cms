@@ -1,5 +1,17 @@
 module.exports = ({ env }) => ({
-  // ...
+  slugify: {
+    enabled: true,
+    slugifyWithCount: true,
+    config: {
+      contentTypes: {
+        article: {
+          field: "slug",
+          references: "title",
+        },
+      },
+      slugifyWithCount: true,
+    },
+  },
   upload: {
     config: {
       provider: "aws-s3",
