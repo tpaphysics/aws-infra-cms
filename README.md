@@ -1,4 +1,4 @@
-# Criação de infraestrutura e deploy de aplicação Strapi na AWS
+# Criação de infraestrutura e deploy do Strapi CMS na AWS
 
 <p align="center">
   <a href="https://aws.amazon.com/ec2/"><img src="https://img.shields.io/badge/AWS-EC2-orange?logo=amazon-aws&logoColor=white&style=flat" alt="AWS EC2"></a>
